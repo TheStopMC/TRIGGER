@@ -14,13 +14,13 @@ import java.util.function.Consumer;
 public class RuntimeCompiler {
 
     public static Consumer<TriggeredCallback> compileConsumer(String className, String imports, String functionBody) throws Exception {
-        String fullClassName = "cat.cat.TRIGGER.dynamic.generated." + className;
+        String fullClassName = "cat.TRIGGER.dynamic.generated." + className;
 
         // Full source code string
         String sourceCode = """
-                package cat.cat.TRIGGER.dynamic.generated;
+                package cat.TRIGGER.dynamic.generated;
 
-                import cat.cat.TRIGGER.dynamic.DynamicFunction;
+                import cat.TRIGGER.dynamic.DynamicFunction;
                 %s
 
                 public class %s implements DynamicFunction {
