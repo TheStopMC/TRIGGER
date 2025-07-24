@@ -1,8 +1,8 @@
-# TRIGGER
+# cat.TRIGGER
 
-**This is no longer actively maintained due to time limitations, you may still submit issues and PRs though. I may also update this to the latest minestom version at request. A rework of this in C++ for my own game engine is also in the works.**
+**This is a hard fork of cat.TRIGGER by CatKillsReality, everything added/changed here is for my own needs and hopefully will be enjoyed by someone else!.**
 
-TRIGGER provides easy to use area-based triggers for minestom that you can tailor to your use case.
+cat.TRIGGER provides easy to use area-based triggers for minestom that you can tailor to your use case.
 
 The core implementation is powered by the bundled [QuickHull3D](https://github.com/Quickhull3d/quickhull3d) algorithm.
 
@@ -21,9 +21,9 @@ a response is not guaranteed though.
 
 ## Install
 
-The latest version of TRIGGER is available through JitPack:
+The latest version of cat.TRIGGER is available through JitPack:
 
-[![](https://jitpack.io/v/CatKillsReality/TRIGGER.svg?style=flat-square)](https://jitpack.io/#CatKillsReality/TRIGGER)
+[![](https://jitpack.io/v/CatKillsReality/cat.TRIGGER.svg?style=flat-square)](https://jitpack.io/#CatKillsReality/cat.TRIGGER)
 
 #### build.gradle (Gradle)
 
@@ -34,7 +34,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.CatKillsReality:TRIGGER:master-SNAPSHOT'
+    implementation 'com.github.CatKillsReality:cat.TRIGGER:master-SNAPSHOT'
 }
 ```
 
@@ -47,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.CatKillsReality:TRIGGER:master-SNAPSHOT")
+    implementation("com.github.CatKillsReality:cat.TRIGGER:master-SNAPSHOT")
 }
 ```
 
@@ -63,7 +63,7 @@ dependencies {
 
 <dependency>
     <groupId>com.github.CatKillsReality</groupId>
-    <artifactId>TRIGGER</artifactId>
+    <artifactId>cat.TRIGGER</artifactId>
     <version>master-SNAPSHOT</version>
 </dependency>
 ```

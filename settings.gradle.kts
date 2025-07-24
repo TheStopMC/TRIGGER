@@ -1,1 +1,1 @@
-rootProject.name = "TRIGGER"
+rootProject.name = "cat.TRIGGER"

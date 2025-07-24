@@ -1,22 +1,23 @@
 /*
- *     This file is part of TRIGGER by @catkillsreality.
+ *     This file is part of cat.TRIGGER by @catkillsreality.
  *
- *     TRIGGER is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ *     cat.TRIGGER is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- *     TRIGGER is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *     cat.TRIGGER is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- *     You should have received a copy of the GNU General Public License along with TRIGGER. If not, see <https://www.gnu.org/licenses/>.
+ *     You should have received a copy of the GNU General Public License along with cat.TRIGGER. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package cat.TRIGGER;
+package cat.TRIGGER.config;
 
+import cat.TRIGGER.Trigger;
+import cat.TRIGGER.dynamic.DynamicConsumerWrapper;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minestom.server.coordinate.Vec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,16 @@ public class TriggerTypeAdapter extends TypeAdapter<Trigger> {
             }
         });
         out.endArray();
+
+        if (!(trigger.getTriggeredCallback() instanceof DynamicConsumerWrapper wrapper)) {
+            throw new IllegalArgumentException("Expected DynamicConsumerWrapper");
+        }
+
+        out.name("callback");
+        out.beginObject();
+        out.name("functionBody").value(wrapper.getFunctionBody());
+        out.name("imports").value(wrapper.getImports());
+        out.endObject();
         out.endObject();
     }
 
@@ -70,6 +81,8 @@ public class TriggerTypeAdapter extends TypeAdapter<Trigger> {
         List<Vec> anchors = new ArrayList<>();
         Vec position = Vec.ZERO;
         Component name = Component.text("unnamed");
+        String imports = null;
+        String functionBody = null;
 
         in.beginObject();
         while (in.hasNext()) {
@@ -108,10 +121,24 @@ public class TriggerTypeAdapter extends TypeAdapter<Trigger> {
                     }
                     in.endArray();
                 }
+                case "callback" -> {
+                    in.beginObject();
+                    while (in.hasNext()) {
+                        switch (in.nextName()) {
+                            case "imports" -> imports = in.nextString();
+                            case "functionBody" -> functionBody = in.nextString();
+                        }
+                    }
+                    in.endObject();
+                }
                 default -> in.skipValue();
             }
         }
         in.endObject();
-        return new Trigger(anchors, position, UUID.randomUUID(), name, NamedTextColor.RED, null);
+        try {
+            return new Trigger(anchors, position, UUID.randomUUID(), name, NamedTextColor.RED, new DynamicConsumerWrapper(imports, functionBody));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

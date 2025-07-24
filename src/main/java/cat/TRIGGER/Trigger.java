@@ -1,17 +1,19 @@
 /*
- *     This file is part of TRIGGER by @catkillsreality.
+ *     This file is part of cat.TRIGGER by @catkillsreality.
  *
- *     TRIGGER is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ *     cat.TRIGGER is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- *     TRIGGER is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *     cat.TRIGGER is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- *     You should have received a copy of the GNU General Public License along with TRIGGER. If not, see <https://www.gnu.org/licenses/>.
+ *     You should have received a copy of the GNU General Public License along with cat.TRIGGER. If not, see <https://www.gnu.org/licenses/>.
  */
 
 package cat.TRIGGER;
 
-import cat.TRIGGER.quickhull3d.Point3d;
-import cat.TRIGGER.quickhull3d.QuickHull3D;
+import cat.TRIGGER.dynamic.DynamicConsumerWrapper;
+import com.github.quickhull3d.Point3d;
+import com.github.quickhull3d.QuickHull3D;
+import com.jamieswhiteshirt.rtree3i.Box;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.util.RGBLike;
 import net.minestom.server.collision.BoundingBox;
@@ -19,7 +21,6 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Player;
-import net.minestom.server.event.player.PlayerMoveEvent;
 import net.minestom.server.network.packet.server.play.ParticlePacket;
 import net.minestom.server.particle.Particle;
 import org.slf4j.Logger;
@@ -48,9 +49,10 @@ public class Trigger {
     private final UUID uuid;
     private final List<Vec> anchors;
     private Vec position;
-    private double checkRadius = 0;
 
-    private Consumer<TriggeredCallback> triggeredCallback;
+    private Box boundingBox;
+
+    private DynamicConsumerWrapper triggeredCallback;
 
     private final Component name;
     private RGBLike color; // Debug render color
@@ -66,7 +68,7 @@ public class Trigger {
      * @param color The {@link RGBLike} used for debug rendering.
      * @param triggeredCallback The {@link Consumer<TriggeredCallback>} that gets called when a trigger is triggered.
      */
-    public Trigger(List<Vec> anchors, Vec position, UUID uuid, Component name, RGBLike color, Consumer<TriggeredCallback> triggeredCallback) {
+    public Trigger(List<Vec> anchors, Vec position, UUID uuid, Component name, RGBLike color, DynamicConsumerWrapper triggeredCallback) {
         this.anchors = anchors;
         this.position = position;
         this.uuid = uuid;
@@ -108,11 +110,13 @@ public class Trigger {
             }
         }
         this.triangles = tris;
-        this.checkRadius = 1.5 * computeBoundingRadius(anchors, position);
 
         long endTime = System.nanoTime();
         long durationInNs = endTime - startTime;
         this.lastComputationTime = durationInNs / 1000000.0;
+
+
+        boundingBox = computeBoundingBox(2.0);
     }
 
     /**
@@ -120,17 +124,6 @@ public class Trigger {
      */
     public void recompute() {
         compute();
-    }
-
-    /**
-     * Internal method for calculating the distance between {@link Trigger#position} and the furthest {@link Trigger#anchors anchor}.
-     * The {@link Trigger#checkRadius radius} used to check if you're near a trigger or not in order to skip more expensive calculations, used in the main collision {@link TriggerManager#accept(PlayerMoveEvent) handler}.
-     * @param anchors The list of anchors to search through.
-     * @param position The position to calculate distance to the furthest anchor from.
-     * @return The distance from the position to the furthest anchor.
-     */
-    private double computeBoundingRadius(List<Vec> anchors, Vec position) {
-        return anchors.stream().mapToDouble(anchor -> anchor.distance(position)).max().orElse(0);
     }
 
     /**
@@ -398,6 +391,35 @@ public class Trigger {
         return rank <= 3;
     }
 
+    public Box computeBoundingBox(double padding) {
+
+        /** Compute bounding box **/
+        double minX = Double.POSITIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY;
+        double minZ = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double maxY = Double.NEGATIVE_INFINITY;
+        double maxZ = Double.NEGATIVE_INFINITY;
+
+        for (Vec anchor : anchors) {
+            Vec worldPos = anchor.add(position);
+            minX = Math.min(minX, worldPos.x());
+            minY = Math.min(minY, worldPos.y());
+            minZ = Math.min(minZ, worldPos.z());
+            maxX = Math.max(maxX, worldPos.x());
+            maxY = Math.max(maxY, worldPos.y());
+            maxZ = Math.max(maxZ, worldPos.z());
+        }
+
+        return Box.create(
+                (int) Math.floor(minX - padding),
+                (int) Math.floor(minY - padding),
+                (int) Math.floor(minZ - padding),
+                (int) Math.ceil(maxX + padding),
+                (int) Math.ceil(maxY + padding),
+                (int) Math.ceil(maxZ + padding));
+    }
+
     /**
      * A representation of a simple triangle and its normal used for calculations in 3D space.
      * @param a The first {@link Point} of the triangle.
@@ -464,7 +486,7 @@ public class Trigger {
      * Get the current callback {@link Consumer} of this trigger.
      * @return The {@link TriggeredCallback} {@link Consumer} of this {@link Trigger}.
      */
-    public Consumer<TriggeredCallback> getTriggeredCallback() {
+    public DynamicConsumerWrapper getTriggeredCallback() {
         return triggeredCallback;
     }
 
@@ -472,7 +494,7 @@ public class Trigger {
      * Set a new callback {@link Consumer} for this trigger.
      * @param triggeredCallback The new {@link TriggeredCallback} {@link Consumer} of this {@link Trigger}.
      */
-    public void setTriggeredCallback(Consumer<TriggeredCallback> triggeredCallback) {
+    public void setTriggeredCallback(DynamicConsumerWrapper triggeredCallback) {
         this.triggeredCallback = triggeredCallback;
     }
 
@@ -512,14 +534,6 @@ public class Trigger {
     }
 
     /**
-     * Get the distance check radius.
-     * @return The distance check radius.
-     */
-    public double getCheckRadius() {
-        return checkRadius;
-    }
-
-    /**
      * Get the {@link Component} that represents the display name of the trigger.
      * @return The {@link Component} that represents the display name of the trigger.
      */
@@ -534,5 +548,7 @@ public class Trigger {
     public List<Vec> getAnchors() {
         return anchors;
     }
+
+    public Box getBoundingBox() {return boundingBox;}
 }
 
